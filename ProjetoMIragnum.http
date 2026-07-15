@@ -1,0 +1,6 @@
+@ProjetoMIragnum_HostAddress = http://localhost:5230
+
+GET {{ProjetoMIragnum_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
