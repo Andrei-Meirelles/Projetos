@@ -30,11 +30,11 @@ namespace ProjetoMIragnum
         }
         [HttpPost]
 
-        public async Task<IActionResult> Post(Usuario usuario)
+        public async Task<IActionResult> Post(DTO usuarioDto)
 
         {
-            var Usuarionovo = new Usuario(usuario.Email, usuario.Senha);
-            if (Usuarionovo == null || string.IsNullOrWhiteSpace(usuario.Email) || string.IsNullOrWhiteSpace(usuario.Senha))
+            var Usuarionovo = new Usuario(usuarioDto.Email, usuarioDto.Senha);
+            if (Usuarionovo == null || string.IsNullOrWhiteSpace(usuarioDto.Email) || string.IsNullOrWhiteSpace(usuarioDto.Senha))
             {
                 return BadRequest();
             }
@@ -44,15 +44,15 @@ namespace ProjetoMIragnum
         }
         [HttpPut("{Id}")]
 
-        public async Task<IActionResult> Put(int Id, Usuario usuarioNovo)
+        public async Task<IActionResult> Put(int Id, DTO usuarioDto)
         {
             var UsuarioEditar = await _myContext.Usuarios.FindAsync(Id);
             if (UsuarioEditar == null)
             {
                 return NotFound();
             }
-            UsuarioEditar.Email = usuarioNovo.Email;
-            UsuarioEditar.Senha = usuarioNovo.Senha;
+            UsuarioEditar.Email = usuarioDto.Email;
+            UsuarioEditar.Senha = usuarioDto.Senha;
              await _myContext.SaveChangesAsync();
             return Ok(UsuarioEditar);
 
@@ -66,9 +66,25 @@ namespace ProjetoMIragnum
                 return NotFound();
             }
              _myContext.Usuarios.Remove(UsuarioDeletado);
-            return NoContent();
+            await _myContext.SaveChangesAsync();
+            return Ok("Usuario deletado.");
 
         }
+
+        [HttpGet("{Id}")]
+
+        public async Task<IActionResult> GetporId(int Id)
+        {
+            var usuarioPorId = await _myContext.Usuarios.FindAsync(Id);
+            if (usuarioPorId == null)
+            {
+                return NotFound();
+            }
+            return Ok(usuarioPorId);
+        }
+
+      
+
 
     }
 
