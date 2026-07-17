@@ -40,7 +40,7 @@ namespace ProjetoMIragnum
             }
             _myContext.Usuarios.Add(Usuarionovo);
             await _myContext.SaveChangesAsync();
-            return NoContent();
+            return Ok(Usuarionovo);
         }
         [HttpPut("{Id}")]
 
