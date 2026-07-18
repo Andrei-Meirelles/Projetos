@@ -2,7 +2,7 @@
 
 namespace ProjetoMIragnum
 {
-    public class DTO
+    public class DTORequest
     {
         [EmailAddress]
         public string Email { get; set; } = string.Empty;
@@ -13,5 +13,11 @@ namespace ProjetoMIragnum
       
 
 
+    }
+
+    public class DtoUsuarioResponse
+    {
+        public int Id { get; set; }
+        public string Email { get; set; } = string.Empty;
     }
 }

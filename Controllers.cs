@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Identity.Client;
+using BCrypt;
 
 namespace ProjetoMIragnum
 {
@@ -30,31 +31,59 @@ namespace ProjetoMIragnum
         }
         [HttpPost]
 
-        public async Task<IActionResult> Post(DTO usuarioDto)
+        public async Task<IActionResult> Post(DTORequest usuarioDto)
 
         {
-            var Usuarionovo = new Usuario(usuarioDto.Email, usuarioDto.Senha);
-            if (Usuarionovo == null || string.IsNullOrWhiteSpace(usuarioDto.Email) || string.IsNullOrWhiteSpace(usuarioDto.Senha))
+            if(string.IsNullOrWhiteSpace(usuarioDto.Email) || string.IsNullOrWhiteSpace(usuarioDto.Senha))
             {
                 return BadRequest();
+
             }
+
+            string Senhahash = BCrypt.Net.BCrypt.HashPassword(usuarioDto.Senha);
+                
+            var Usuarionovo = new Usuario(usuarioDto.Email, Senhahash);
+
             _myContext.Usuarios.Add(Usuarionovo);
+
+           
+
+
+            var usuariosemsenha = new DtoUsuarioResponse
+            {
+                Id = Usuarionovo.Id,
+                Email = Usuarionovo.Email
+            };
             await _myContext.SaveChangesAsync();
-            return Ok(Usuarionovo);
+
+
+            return Ok(usuariosemsenha);
+               
+            
         }
         [HttpPut("{Id}")]
 
-        public async Task<IActionResult> Put(int Id, DTO usuarioDto)
+        public async Task<IActionResult> Put(int Id, DTORequest usuarioDto)
         {
             var UsuarioEditar = await _myContext.Usuarios.FindAsync(Id);
             if (UsuarioEditar == null)
             {
                 return NotFound();
             }
+            string HashSenha = BCrypt.Net.BCrypt.HashPassword(usuarioDto.Senha);
+
             UsuarioEditar.Email = usuarioDto.Email;
-            UsuarioEditar.Senha = usuarioDto.Senha;
-             await _myContext.SaveChangesAsync();
-            return Ok(UsuarioEditar);
+            UsuarioEditar.Senha = HashSenha;
+            await _myContext.SaveChangesAsync();
+
+            var usuariosemsenha = new DtoUsuarioResponse
+            {
+                Id = UsuarioEditar.Id,
+                Email = UsuarioEditar.Email
+            };
+
+
+            return Ok();
 
         }
         [HttpDelete("{Id}")]
