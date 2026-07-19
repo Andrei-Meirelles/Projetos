@@ -26,7 +26,22 @@ namespace ProjetoMIragnum
             {
                 return NotFound();
             }
-            return Ok(getting);
+            var usuariosemsenha = getting.Select(u => new DtoUsuarioResponse
+            {
+                Id = u.Id,
+                Email = u.Email
+
+            
+
+
+
+            }).ToList();
+            {
+                
+
+            };
+            
+            return Ok(usuariosemsenha);
 
         }
         [HttpPost]
@@ -39,14 +54,19 @@ namespace ProjetoMIragnum
                 return BadRequest();
 
             }
+            bool emailExist = await _myContext.Usuarios.AnyAsync(u => u.Email == usuarioDto.Email); 
+            if (emailExist)
+            {
+                return BadRequest("Esse Email ja existe");
+            }
 
             string Senhahash = BCrypt.Net.BCrypt.HashPassword(usuarioDto.Senha);
                 
             var Usuarionovo = new Usuario(usuarioDto.Email, Senhahash);
 
             _myContext.Usuarios.Add(Usuarionovo);
+            await _myContext.SaveChangesAsync();
 
-           
 
 
             var usuariosemsenha = new DtoUsuarioResponse
@@ -54,7 +74,7 @@ namespace ProjetoMIragnum
                 Id = Usuarionovo.Id,
                 Email = Usuarionovo.Email
             };
-            await _myContext.SaveChangesAsync();
+           
 
 
             return Ok(usuariosemsenha);
@@ -83,7 +103,7 @@ namespace ProjetoMIragnum
             };
 
 
-            return Ok();
+            return Ok("Usuario atualizado");
 
         }
         [HttpDelete("{Id}")]
