@@ -1,9 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using BCrypt;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client;
-using BCrypt;
+using Microsoft.IdentityModel.Tokens;
+using ProjetoMIragnum.Dtos;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
-namespace ProjetoMIragnum
+namespace ProjetoMIragnum.NovaPasta
 {
 
 
@@ -12,12 +18,74 @@ namespace ProjetoMIragnum
     public class MiragController : ControllerBase
     {
         private readonly MyDbContext _myContext;
+        private readonly IConfiguration _configuration;
 
-        public MiragController(MyDbContext context)
+        public MiragController(MyDbContext context, IConfiguration configuration)
         {
+           
             _myContext = context;
+            _configuration = configuration;
         }
+     
 
+        [HttpPost("Login")]
+        public IActionResult login(LoginDto login)
+        {
+
+            // 1 - Procurar o usuário
+            var usuario = _myContext.Usuarios
+                .FirstOrDefault(u => u.Email == login.Email);
+
+            // 2 - Verificar se existe
+            if (usuario == null)
+            {
+                return Unauthorized("Email ou senha inválidos.");
+            }
+
+            // 3 - Verificar a senha
+            bool senhaCorreta = BCrypt.Net.BCrypt.Verify(login.Senha, usuario.Senha);
+
+            if (!senhaCorreta)
+            {
+                return Unauthorized("Email ou senha inválidos.");
+            }
+            var tokenHandler = new JwtSecurityTokenHandler();
+
+            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!);
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+        new Claim(ClaimTypes.Name, usuario.Email),
+        new Claim(ClaimTypes.Role, usuario.Cargo)
+    }),
+
+                Expires = DateTime.UtcNow.AddHours(2),
+
+                Issuer = _configuration["Jwt:Issuer"],
+
+                Audience = _configuration["Jwt:Audience"],
+
+                SigningCredentials =
+                    new SigningCredentials(
+                        new SymmetricSecurityKey(key),
+                        SecurityAlgorithms.HmacSha256Signature)
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+
+            var jwt = tokenHandler.WriteToken(token);
+
+
+
+            return Ok(new
+            {
+                token = jwt
+            });
+
+        }
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> Get()
         {
@@ -62,7 +130,7 @@ namespace ProjetoMIragnum
 
             string Senhahash = BCrypt.Net.BCrypt.HashPassword(usuarioDto.Senha);
                 
-            var Usuarionovo = new Usuario(usuarioDto.Email, Senhahash);
+            var Usuarionovo = new Usuario(usuarioDto.Email, Senhahash, usuarioDto.Cargo);
 
             _myContext.Usuarios.Add(Usuarionovo);
             await _myContext.SaveChangesAsync();
@@ -73,6 +141,7 @@ namespace ProjetoMIragnum
             {
                 Id = Usuarionovo.Id,
                 Email = Usuarionovo.Email
+                
             };
            
 
@@ -81,6 +150,7 @@ namespace ProjetoMIragnum
                
             
         }
+
         [HttpPut("{Id}")]
 
         public async Task<IActionResult> Put(int Id, DTORequest usuarioDto)
@@ -106,6 +176,7 @@ namespace ProjetoMIragnum
             return Ok("Usuario atualizado");
 
         }
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{Id}")]
         public async Task<IActionResult> Delete(int Id)
         {
