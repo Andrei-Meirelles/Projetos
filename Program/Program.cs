@@ -51,10 +51,25 @@ builder.Services
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
-            )
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
         };
-    });
+             options.Events = new JwtBearerEvents
+             {
+                 OnForbidden = async context =>
+                 {
+                     context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                     context.Response.ContentType = "application/json";
+
+                     await context.Response.WriteAsJsonAsync(new
+                     {
+                         mensagem = "Você não tem permissão para acessar este recurso."
+                     });
+                 }
+             };
+
+        });
+    
+
 
 builder.Services.AddAuthorization();
 

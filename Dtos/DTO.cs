@@ -10,7 +10,7 @@ namespace ProjetoMIragnum
         [StringLength(20)]
         [MinLength(5)]
         public string Senha { get; set; } = string.Empty;
-        public string Cargo { get; set; } = "Usuario";
+      
 
 
 

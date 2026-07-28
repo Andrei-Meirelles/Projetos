@@ -1,5 +1,6 @@
 ﻿using BCrypt;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client;
@@ -87,9 +88,14 @@ namespace ProjetoMIragnum.NovaPasta
         }
         [Authorize(Roles = "Admin")]
         [HttpGet]
-        public async Task<IActionResult> Get()
+        public async Task<IActionResult> Get(
+            int page = 1,
+            
+            int pageSize = 10)
         {
-            var getting = await _myContext.Usuarios.ToListAsync();
+            int skip = (page - 1) * pageSize;
+           
+            var getting = await _myContext.Usuarios.Skip(skip).Take(pageSize).ToListAsync();
             if (getting.Count == 0)
             {
                 return NotFound();
@@ -97,7 +103,8 @@ namespace ProjetoMIragnum.NovaPasta
             var usuariosemsenha = getting.Select(u => new DtoUsuarioResponse
             {
                 Id = u.Id,
-                Email = u.Email
+                Email = u.Email,
+               
 
             
 
@@ -130,7 +137,7 @@ namespace ProjetoMIragnum.NovaPasta
 
             string Senhahash = BCrypt.Net.BCrypt.HashPassword(usuarioDto.Senha);
                 
-            var Usuarionovo = new Usuario(usuarioDto.Email, Senhahash, usuarioDto.Cargo);
+            var Usuarionovo = new Usuario(usuarioDto.Email, Senhahash);
 
             _myContext.Usuarios.Add(Usuarionovo);
             await _myContext.SaveChangesAsync();
@@ -184,6 +191,10 @@ namespace ProjetoMIragnum.NovaPasta
             if (UsuarioDeletado == null)
             {
                 return NotFound();
+            }
+            else if (User.IsInRole("Admin"))
+            {
+                return BadRequest("Um administrador não pode apagar outro administrador.");
             }
              _myContext.Usuarios.Remove(UsuarioDeletado);
             await _myContext.SaveChangesAsync();

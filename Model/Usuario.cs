@@ -7,13 +7,13 @@
 
         public string Senha { get; set; } = string.Empty;
 
-        public string Cargo { get; set; } = "Usuario";
+        public string Cargo { get; private set; } = "Usuario";
 
-        public Usuario(string email, string senha, string cargo)
+        public Usuario(string email, string senha)
         {
             Email = email;
             Senha = senha;
-            Cargo = cargo;
+           
 
         }
     }
