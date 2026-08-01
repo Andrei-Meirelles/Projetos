@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
  // Importação essencial para os modelos do OpenAPI
 using ProjetoMIragnum;
+using ProjetoMIragnum.Middleware;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -86,7 +87,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseMiddleware<LoggingMiddleware>();
 app.MapControllers();
 
 app.Run();
