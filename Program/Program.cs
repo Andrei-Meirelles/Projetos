@@ -5,6 +5,7 @@ using Microsoft.OpenApi;
  // Importação essencial para os modelos do OpenAPI
 using ProjetoMIragnum;
 using ProjetoMIragnum.Middleware;
+using ProjetoMIragnum.Service;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,7 @@ var DefaultConnection = builder.Configuration.GetConnectionString("DefaultConnec
 
 // Serviços
 builder.Services.AddControllers();
+builder.Services.AddScoped<UsuarioService>();
 
 // CORREÇÃO 1: .AddEndpointsApiExplorer() foi removido pois não é mais necessário no .NET 10
 

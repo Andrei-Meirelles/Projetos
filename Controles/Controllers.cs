@@ -9,8 +9,10 @@ using ProjetoMIragnum.Dtos;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using ProjetoMIragnum.Service;
+using System.ComponentModel.DataAnnotations;
 
-namespace ProjetoMIragnum.NovaPasta
+namespace ProjetoMIragnum.Service
 {
 
 
@@ -18,142 +20,56 @@ namespace ProjetoMIragnum.NovaPasta
     [Route("api/[Controller]")]
     public class MiragController : ControllerBase
     {
-        private readonly MyDbContext _myContext;
-        private readonly IConfiguration _configuration;
+        private readonly UsuarioService _usuarioservice;
 
-        public MiragController(MyDbContext context, IConfiguration configuration)
+        public MiragController(UsuarioService usuarioservice)
         {
-           
-            _myContext = context;
-            _configuration = configuration;
+            _usuarioservice = usuarioservice;
         }
      
 
         [HttpPost("Login")]
-        public IActionResult login(LoginDto login)
+        public async Task<IActionResult> login(LoginDto login)
         {
 
-            // 1 - Procurar o usuário
-            var usuario = _myContext.Usuarios
-                .FirstOrDefault(u => u.Email == login.Email);
-
-            // 2 - Verificar se existe
-            if (usuario == null)
+            var token = await _usuarioservice.login(login);
+            if (token == null)
             {
-                return Unauthorized("Email ou senha inválidos.");
+                return BadRequest("Email ou senha inválidos");
             }
-
-            // 3 - Verificar a senha
-            bool senhaCorreta = BCrypt.Net.BCrypt.Verify(login.Senha, usuario.Senha);
-
-            if (!senhaCorreta)
-            {
-                return Unauthorized("Email ou senha inválidos.");
-            }
-            var tokenHandler = new JwtSecurityTokenHandler();
-
-            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!);
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[]
-                {
-        new Claim(ClaimTypes.Name, usuario.Email),
-        new Claim(ClaimTypes.Role, usuario.Cargo)
-    }),
-
-                Expires = DateTime.UtcNow.AddHours(2),
-
-                Issuer = _configuration["Jwt:Issuer"],
-
-                Audience = _configuration["Jwt:Audience"],
-
-                SigningCredentials =
-                    new SigningCredentials(
-                        new SymmetricSecurityKey(key),
-                        SecurityAlgorithms.HmacSha256Signature)
-            };
-
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-
-            var jwt = tokenHandler.WriteToken(token);
-
-
-
             return Ok(new
             {
-                token = jwt
+                token = token
             });
 
         }
+
         [Authorize(Roles = "Admin")]
         [HttpGet]
-        public async Task<IActionResult> Get(
-            int page = 1,
-            
-            int pageSize = 10)
+        public async Task<IActionResult> Get()
         {
-            int skip = (page - 1) * pageSize;
-           
-            var getting = await _myContext.Usuarios.Skip(skip).Take(pageSize).ToListAsync();
-            if (getting.Count == 0)
+            var usuario = await _usuarioservice.Get();
+            if (usuario.Count == 0)
             {
-                return NotFound();
+                return NotFound("Lista vazia");
             }
-            var usuariosemsenha = getting.Select(u => new DtoUsuarioResponse
-            {
-                Id = u.Id,
-                Email = u.Email,
-               
-
-            
-
-
-
-            }).ToList();
-            {
-                
-
-            };
-            
-            return Ok(usuariosemsenha);
+            return Ok(usuario);
 
         }
+      
         [HttpPost]
 
         public async Task<IActionResult> Post(DTORequest usuarioDto)
 
         {
-            if(string.IsNullOrWhiteSpace(usuarioDto.Email) || string.IsNullOrWhiteSpace(usuarioDto.Senha))
+            var Postar = await _usuarioservice.Post(usuarioDto);
+          
+            if (Postar == null)
             {
-                return BadRequest();
-
-            }
-            bool emailExist = await _myContext.Usuarios.AnyAsync(u => u.Email == usuarioDto.Email); 
-            if (emailExist)
-            {
-                return BadRequest("Esse Email ja existe");
+                return BadRequest("Esse email ja existe");
             }
 
-            string Senhahash = BCrypt.Net.BCrypt.HashPassword(usuarioDto.Senha);
-                
-            var Usuarionovo = new Usuario(usuarioDto.Email, Senhahash);
-
-            _myContext.Usuarios.Add(Usuarionovo);
-            await _myContext.SaveChangesAsync();
-
-
-
-            var usuariosemsenha = new DtoUsuarioResponse
-            {
-                Id = Usuarionovo.Id,
-                Email = Usuarionovo.Email
-                
-            };
-           
-
-
-            return Ok(usuariosemsenha);
+            return Ok(Postar);
                
             
         }
@@ -162,33 +78,21 @@ namespace ProjetoMIragnum.NovaPasta
 
         public async Task<IActionResult> Put(int Id, DTORequest usuarioDto)
         {
-            var UsuarioEditar = await _myContext.Usuarios.FindAsync(Id);
-            if (UsuarioEditar == null)
+           var putting = await _usuarioservice.Put(Id, usuarioDto);
+            if (putting == null)
             {
-                return NotFound();
+                return BadRequest("Usuario não encontrado");
             }
-            string HashSenha = BCrypt.Net.BCrypt.HashPassword(usuarioDto.Senha);
-
-            UsuarioEditar.Email = usuarioDto.Email;
-            UsuarioEditar.Senha = HashSenha;
-            await _myContext.SaveChangesAsync();
-
-            var usuariosemsenha = new DtoUsuarioResponse
-            {
-                Id = UsuarioEditar.Id,
-                Email = UsuarioEditar.Email
-            };
-
 
             return Ok("Usuario atualizado");
-
         }
         [Authorize(Roles = "Admin")]
         [HttpDelete("{Id}")]
         public async Task<IActionResult> Delete(int Id)
         {
-            var UsuarioDeletado = await _myContext.Usuarios.FindAsync(Id);
-            if (UsuarioDeletado == null)
+            var Deletar = await _usuarioservice.Delete(Id);
+
+            if (Deletar == null)
             {
                 return NotFound();
             }
@@ -196,8 +100,7 @@ namespace ProjetoMIragnum.NovaPasta
             {
                 return BadRequest("Um administrador não pode apagar outro administrador.");
             }
-             _myContext.Usuarios.Remove(UsuarioDeletado);
-            await _myContext.SaveChangesAsync();
+            
             return Ok("Usuario deletado.");
 
         }
@@ -206,12 +109,12 @@ namespace ProjetoMIragnum.NovaPasta
 
         public async Task<IActionResult> GetporId(int Id)
         {
-            var usuarioPorId = await _myContext.Usuarios.FindAsync(Id);
-            if (usuarioPorId == null)
+          var GetId = await _usuarioservice.GetporId(Id);
+            if (GetId == null)
             {
                 return NotFound();
             }
-            return Ok(usuarioPorId);
+            return Ok(GetId);
         }
 
       
