@@ -50,7 +50,7 @@ namespace ProjetoMIragnum.Service
             return usuariosemsenha;
         }
 
-            public async Task<string> login(LoginDto login)
+            public async Task<string?> login(LoginDto login)
         {
             {
 
@@ -60,7 +60,7 @@ namespace ProjetoMIragnum.Service
                 // 2 - Verificar se existe
                 if (usuario == null)
                 {
-                    return null!;
+                    return null;
                 }
 
                 // 3 - Verificar a senha
@@ -68,7 +68,7 @@ namespace ProjetoMIragnum.Service
 
                 if (!senhaCorreta)
                 {
-                    return null!;
+                    return null;
                 }
                 var tokenHandler = new JwtSecurityTokenHandler();
 
@@ -109,14 +109,14 @@ namespace ProjetoMIragnum.Service
         }
 
 
-        public async Task<DtoUsuarioResponse> Post(DTORequest usuarioDto)
+        public async Task<DtoUsuarioResponse?> Post(DTORequest usuarioDto)
 
         {
 
             bool emailExist = await _myContext.Usuarios.AnyAsync(u => u.Email == usuarioDto.Email);
             if (emailExist)
             {
-                return null!;
+                return null;
             }
 
             string Senhahash = BCrypt.Net.BCrypt.HashPassword(usuarioDto.Senha);
@@ -140,7 +140,7 @@ namespace ProjetoMIragnum.Service
             return usuariosemsenha;
         }
 
-             public async Task<DtoUsuarioResponse> Put(int Id, DTORequest usuarioDto)
+             public async Task<DtoUsuarioResponse?> Put(int Id, DTORequest usuarioDto)
         {
             var UsuarioEditar = await _myContext.Usuarios.FindAsync(Id);
             
@@ -148,6 +148,10 @@ namespace ProjetoMIragnum.Service
 
             UsuarioEditar!.Email = usuarioDto.Email;
             UsuarioEditar.Senha = HashSenha;
+            if (UsuarioEditar == null)
+            {
+                return null;
+            }
             await _myContext.SaveChangesAsync();
 
             var usuariosemsenha = new DtoUsuarioResponse
@@ -161,12 +165,16 @@ namespace ProjetoMIragnum.Service
            
 
         }
-        public async Task<string> Delete(int Id)
+        public async Task<string?> Delete(int Id)
         {
             string mensagem = "Usuario deletado";
             var UsuarioDeletado = await _myContext.Usuarios.FindAsync(Id);
+            if (UsuarioDeletado == null)
+            {
+                return null;
+            }
           
-            _myContext.Usuarios.Remove(UsuarioDeletado!);
+            _myContext.Usuarios.Remove(UsuarioDeletado);
             await _myContext.SaveChangesAsync();
 
             return mensagem;
@@ -188,7 +196,7 @@ namespace ProjetoMIragnum.Service
             return usuariosemsenha;
         }
 
-
+         
     }
 
 
